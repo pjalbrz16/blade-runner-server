@@ -1,0 +1,1 @@
+export SKAFFOLD_DEFAULT_REPO=localhost:5000

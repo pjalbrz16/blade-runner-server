@@ -1,0 +1,135 @@
+openapi: 3.1.0
+info:
+  title: CodeQL Graph API
+  description: API to submit CodeQL graph analysis jobs
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  /jobs:
+    post:
+      summary: Submit a CodeQL analysis job
+      operationId: createJob
+      tags:
+        - Jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+      responses:
+        '201':
+          description: Job successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateJobResponse'
+        '400':
+          description: Invalid request
+        '500':
+          description: Internal server error
+
+    get:
+      summary: List executed jobs
+      operationId: listExecutedJobs
+      tags: [Jobs]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by final status
+          schema:
+            $ref: '#/components/schemas/FinalJobStatus'
+        - name: limit
+          in: query
+          required: false
+          description: Max number of items to return (1..200)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          description: Offset for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Executed jobs list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutedJobsResponse'
+
+components:
+  schemas:
+    CreateJobRequest:
+      type: object
+      required:
+        - repoUrl
+        - language
+      properties:
+        repoUrl:
+          type: string
+          format: uri
+          example: https://github.com/example/project
+        language:
+          type: string
+          example: java
+
+    CreateJobResponse:
+      type: object
+      required:
+        - jobId
+        - status
+      properties:
+        jobId:
+          type: string
+          example: 8f2a3b1e-6a1f-4a91-9c42-9b2b0f7f4c01
+        status:
+          type: string
+          example: QUEUED
+    FinalJobStatus:
+      type: string
+      enum: [ SUCCEEDED, FAILED ]
+
+    ExecutedJobsResponse:
+      type: object
+      required: [ items, total ]
+      properties:
+        total:
+          type: integer
+          description: Total executed jobs matching the filter (not just returned page)
+          example: 123
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobSummary'
+
+    JobSummary:
+      type: object
+      required: [ jobId, repoUrl, status, createdAt, finishedAt ]
+      properties:
+        jobId:
+          type: string
+          example: 8f2a3b1e-6a1f-4a91-9c42-9b2b0f7f4c01
+        repoUrl:
+          type: string
+          format: uri
+          example: https://github.com/example/project
+        status:
+          $ref: '#/components/schemas/FinalJobStatus'
+        createdAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time

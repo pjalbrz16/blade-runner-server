@@ -1,0 +1,13 @@
+springdoc:
+  swagger-ui:
+    url: /openapi.yml
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydb
+    username: myuser
+    password: mypass
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
