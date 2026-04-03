@@ -44,8 +44,8 @@ public class WebRepoServiceImpl implements WebRepoService {
                         repositoryUrl,
                         globalProperties.cloneDir(),
                         language,
-                        queryDir,
-                        databaseDir
+                        globalProperties.queryDir(),
+                        globalProperties.databaseDir()
                 ));
 
         ProcessBuilder pb = new ProcessBuilder(command);
