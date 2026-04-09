@@ -4,13 +4,18 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.unamur.enums.RepositoryType;
 import org.unamur.properties.GlobalProperties;
 import org.unamur.service.WebRepoService;
+import org.unamur.service.WebRepositoryStrategy;
+import org.unamur.service.WorkspaceService;
 
 import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.*;
 
 @Slf4j
@@ -20,7 +25,15 @@ public class WebRepoServiceImpl implements WebRepoService {
 
     private final GlobalProperties globalProperties;
 
+    private final WorkspaceService workspaceService;
+
     private final static String language = "java";
+
+    private final Map<RepositoryType, WebRepositoryStrategy> strategies = Map.of(
+            RepositoryType.GITHUB, new GithubRepositoryStrategy(),
+            RepositoryType.AZURE, new AzureRepositoryStrategy(),
+            RepositoryType.GITLAB, new GitlabRepositoryStrategy()
+    );
 
     public void fetchRepository(URI repositoryUrl){
         String scriptPath = "";
@@ -28,6 +41,27 @@ public class WebRepoServiceImpl implements WebRepoService {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "bash -lc %s %s"
         );
+    }
+
+    @Override
+    public List<String> listPR(String repositoryUrl) {
+        RepositoryType type = RepositoryType.fromUrl(repositoryUrl);
+        WebRepositoryStrategy strategy = strategies.get(type);
+
+        File workingDir = workspaceService.getLocalFolderForProject(repositoryUrl);
+
+        ensureRepoExists(workingDir, repositoryUrl);
+
+        for(String command : strategy.getListPrCommand()){
+            executeCommand(command, workingDir, strategy);
+        }
+
+        return strategy.getPrList();
+    }
+
+    @Override
+    public void selectPR(String selectedPr) {
+
     }
 
     @Async
@@ -77,13 +111,7 @@ public class WebRepoServiceImpl implements WebRepoService {
             errTask.get(10, TimeUnit.SECONDS);
 
             exec.shutdownNow();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        } catch (ExecutionException ex) {
-            throw new RuntimeException(ex);
-        } catch (InterruptedException ex) {
-            throw new RuntimeException(ex);
-        } catch (TimeoutException ex) {
+        } catch (IOException | TimeoutException | InterruptedException | ExecutionException ex) {
             throw new RuntimeException(ex);
         }
 
@@ -103,4 +131,25 @@ public class WebRepoServiceImpl implements WebRepoService {
             log.warn("Failed reading process stream", e);
         }
     }
+
+    private void executeCommand(String command, File workingDir, WebRepositoryStrategy strategy) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(command.split(" "));
+            pb.directory(workingDir);
+            Process process = pb.start();
+            strategy.processPrList(process.getInputStream());
+            process.waitFor();
+        } catch (Exception e) {
+            log.error("Error while executing command to list pull requests %s".formatted(e.getMessage()));
+        }
+    }
+
+
+    private void ensureRepoExists(File dir, String url) {
+        // If folder is empty, run 'git clone'
+        if (Objects.requireNonNull(dir.list()).length == 0) {
+            executeCommand("git clone " + url + " .", dir, null);
+        }
+    }
+
 }
