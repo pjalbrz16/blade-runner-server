@@ -19,6 +19,11 @@ public class AzureRepositoryStrategy extends WebRepositoryStrategy {
     }
 
     @Override
+    public String getPrReference() {
+        return "origin/azpr/";
+    }
+
+    @Override
     public List<String> getListPrCommand() {
         return List.of(
                 "git fetch origin +refs/pull/*/head:refs/remotes/origin/azpr/*",

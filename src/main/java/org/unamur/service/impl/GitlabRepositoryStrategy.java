@@ -20,6 +20,11 @@ public class GitlabRepositoryStrategy extends WebRepositoryStrategy {
     }
 
     @Override
+    public String getPrReference() {
+        return "origin/mr/";
+    }
+
+    @Override
     public List<String> getListPrCommand() {
         return List.of(
                 "git fetch origin +refs/merge-requests/*/head:refs/remotes/origin/mr/*",

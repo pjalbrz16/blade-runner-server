@@ -19,9 +19,11 @@ public abstract class WebRepositoryStrategy {
 
     public abstract List<String> getListPrCommand();
 
+    public abstract String getPrReference();
+
     protected abstract Pattern getRepoSpecificPattern();
 
-    public void processPrList(InputStream inputStream){
+    public List<String> processPrList(InputStream inputStream){
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
 
@@ -38,5 +40,6 @@ public abstract class WebRepositoryStrategy {
         } catch (Exception e) {
             log.error("Error parsing PR list: %s".formatted(e.getMessage()));
         }
+        return null;
     }
 }

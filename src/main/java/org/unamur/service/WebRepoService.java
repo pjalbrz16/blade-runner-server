@@ -1,5 +1,7 @@
 package org.unamur.service;
 
+import org.unamur.dto.PrMetadata;
+
 import java.net.URI;
 import java.util.List;
 
@@ -11,6 +13,6 @@ public interface WebRepoService {
 
     List<String> listPR(String repositoryUrl);
 
-    void selectPR(String selectedPr);
+    PrMetadata selectAndPreparePR(URI project, String selectedPr);
 
 }

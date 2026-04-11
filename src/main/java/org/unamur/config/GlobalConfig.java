@@ -9,9 +9,9 @@ import org.unamur.properties.GlobalProperties;
 public class GlobalConfig {
 
     @Bean
-    public GlobalProperties properties(@Value("${cloneDir}") String cloneDir,
-                                       @Value("${databaseDir}") String databaseDir,
-                                       @Value("${queryDir}") String queryDir){
+    public GlobalProperties properties(@Value("${config.cloneDir}") String cloneDir,
+                                       @Value("${config.databaseDir}") String databaseDir,
+                                       @Value("${config.queryDir}") String queryDir){
         return new GlobalProperties(cloneDir, databaseDir, queryDir);
     }
 

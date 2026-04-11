@@ -36,7 +36,8 @@ paths:
     get:
       summary: List executed jobs
       operationId: listExecutedJobs
-      tags: [Jobs]
+      tags:
+        - Jobs
       parameters:
         - name: status
           in: query
@@ -68,6 +69,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExecutedJobsResponse'
+
+  /listPr:
+    get:
+      summary: Get list of Pull Requests
+      description: Returns a list of PR/MR identification numbers based on the project URL and the detected Git provider.
+      tags:
+        - WebRepo
+      parameters:
+        - name: projectUrl
+          in: query
+          description: The full Git clone URL (GitHub, GitLab, Azure, ...)
+          required: true
+          schema:
+            type: string
+            format: uri
+            example: "https://github.com/pjalbrz16/mem.git"
+      responses:
+        '200':
+          description: A list of PR/MR IDs discovered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["101", "102", "105"]
+        '400':
+          description: Invalid project URL or unsupported provider
+        '500':
+          description: Internal error while executing Git commands
+
+  /selectPr:
+    post:
+      summary: Select a PR for analysis
+      description: |
+        Triggers the internal process to calculate metrics and generate a dependency graph 
+        for a specific Pull Request.
+      tags:
+        - WebRepo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              properties:
+                projectUrl:
+                  type: string
+                  format: uri
+                  description: The full Git repository URL.
+                  example: "https://github.com/pjalbrz16/mem.git"
+                prId:
+                  type: string
+                  description: The unique ID of the Pull Request (as returned by /listPr).
+                  example: "1"
+      responses:
+        '200':
+          description: PR successfully selected and analysis initiated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ANALYSIS_STARTED"
+                  message:
+                    type: string
+                    example: "Generating CodeQL metrics and .dot graph for PR #1"
+        '404':
+          description: Project or PR ID not found in the local workspace.
+        '500':
+          description: Failed to initialize Git diff or CodeQL database.
 
 components:
   schemas:

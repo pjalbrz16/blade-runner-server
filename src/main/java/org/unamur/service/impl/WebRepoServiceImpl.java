@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.unamur.dto.PrMetadata;
 import org.unamur.enums.RepositoryType;
 import org.unamur.properties.GlobalProperties;
 import org.unamur.service.WebRepoService;
 import org.unamur.service.WebRepositoryStrategy;
 import org.unamur.service.WorkspaceService;
+import org.unamur.utils.GitUtils;
 
 import java.io.*;
 import java.net.URI;
@@ -26,6 +28,8 @@ public class WebRepoServiceImpl implements WebRepoService {
     private final GlobalProperties globalProperties;
 
     private final WorkspaceService workspaceService;
+
+    private final GitUtils gitUtils;
 
     private final static String language = "java";
 
@@ -60,8 +64,23 @@ public class WebRepoServiceImpl implements WebRepoService {
     }
 
     @Override
-    public void selectPR(String selectedPr) {
+    public PrMetadata selectAndPreparePR(URI project, String selectedPr) {
+        log.info("Selecting PR with id %s for project %s".formatted(selectedPr, project.toString()));
+        File workingDir = this.workspaceService.getLocalFolderForProject(project.toString());
 
+        RepositoryType repositoryType = RepositoryType.fromUrl(project.toString());
+        var strategy = strategies.get(repositoryType);
+        String prReference = "%s%s".formatted(strategy.getPrReference(), selectedPr);
+        String targetBranch = "origin/main";
+
+        String mergeBase = gitUtils.execute(workingDir,
+                "git", "merge-base", targetBranch, prReference)
+                .trim();
+
+        List<String> impactedFiles = gitUtils.executeForList(
+                workingDir, "git", "diff", "--name-only", mergeBase, prReference);
+
+        return new PrMetadata(mergeBase, prReference, impactedFiles, workingDir.toString());
     }
 
     @Async

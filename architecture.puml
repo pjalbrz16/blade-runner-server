@@ -1,0 +1,68 @@
+@startuml Blade Runner Architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam DefaultFontName Arial
+skinparam ArrowColor #4A4A4A
+
+title Blade Runner Architecture
+
+actor "Developper" as User
+
+node "Frontend Dashboard" as Frontend #LightCyan
+
+package "GitHub Ecosystem" #WhiteSmoke {
+    node "Target Repository\n(Public)" as TargetRepo #White
+
+    component "GitHub Actions Worker\n(.github/workflows/scanner.yml)" as GHAction #LightGreen {
+        artifact "results.sarif\n(CodeQL)" as SarifFile
+        artifact "impacted_files.csv\n(Git Diff)" as ImpactedFiles
+    }
+}
+
+cloud "SonarCloud SaaS" as SonarCloud #LightSkyBlue
+
+package "Your Infrastructure" #WhiteSmoke {
+    node "Java Backend (Spring Boot)" as JavaApp #LightYellow {
+        interface "REST API\n(/v1/projects/...)" as API
+        interface "Webhook Endpoint\n(/v1/metrics/receive)" as Webhook
+
+        component "Metrics Processing Service" as Processing
+        component "Sonar API Client" as SonarClient
+        component ".dot Graph Generator" as GraphGen
+    }
+
+    database "Relational Database" as DB #White {
+        rectangle "PrMetricsRecord\n- CodeQL Alerts\n- Sonar Quality Data\n- .dot text string" as Table
+    }
+}
+
+' --- User & Frontend Flow ---
+User --> Frontend : PR Reviewing
+Frontend --> API : GET Metrics
+
+' --- The Execution Flow ---
+API -up-> GHAction : 1. POST /dispatches\n(Triggers scan w/ projectUrl & prId)
+GHAction -up-> TargetRepo : 2. Clone repo & Checkout PR
+
+GHAction -right-> SonarCloud : 3. Push analysis via Maven\n(mvn sonar:sonar)
+GHAction --> ImpactedFiles : 4. git diff --name-only
+GHAction --> SarifFile : 5. codeql analyze
+
+' --- The Webhook / Push Flow ---
+GHAction -down-> Webhook : 6. POST Multipart Form\n(Sends SARIF & Diff files)
+Webhook --> Processing : 7. Passes files for parsing
+
+' --- Backend Enrichment ---
+Processing -> SonarClient
+SonarClient -up-> SonarCloud : 8. GET /api/measures/component\n(Fetch Bugs, Coverage for PR)
+SonarCloud ..> SonarClient : JSON Response
+
+Processing -> GraphGen : 9. Filter SARIF by Diff\n& Generate graph
+GraphGen --> Processing : .dot string
+
+' --- Persistence ---
+Processing -down-> DB : 10. Persist combined data
+DB -[hidden]-> Table
+
+@enduml
