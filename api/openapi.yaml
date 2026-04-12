@@ -5,77 +5,65 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8080/v1
     description: Local development
 
 paths:
-  /jobs:
+  /metrics:
     post:
-      summary: Submit a CodeQL analysis job
-      operationId: createJob
+      summary: Receive metrics using github webhook
+      operationId: postMetrics
+      security:
+        - BearerAuth: [ ]
       tags:
-        - Jobs
+        - Metrics
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreateJobRequest'
-      responses:
-        '201':
-          description: Job successfully created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateJobResponse'
-        '400':
-          description: Invalid request
-        '500':
-          description: Internal server error
-
-    get:
-      summary: List executed jobs
-      operationId: listExecutedJobs
-      tags:
-        - Jobs
-      parameters:
-        - name: status
-          in: query
-          required: false
-          description: Filter by final status
-          schema:
-            $ref: '#/components/schemas/FinalJobStatus'
-        - name: limit
-          in: query
-          required: false
-          description: Max number of items to return (1..200)
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-            default: 50
-        - name: offset
-          in: query
-          required: false
-          description: Offset for pagination
-          schema:
-            type: integer
-            minimum: 0
-            default: 0
+              $ref: '#/components/schemas/GithubMetrics'
       responses:
         '200':
-          description: Executed jobs list
+          description: Metrics processed successfully
+        '401':
+          description: Unauthorized - Invalid backendToken
+
+    get:
+      summary: Get metrics for project
+      operationId: getMetrics
+      tags:
+        - Metrics
+      parameters:
+        - name: projectUrl
+          in: query
+          required: true
+          description: Project url
+          schema:
+            type: string
+            format: uri
+            example: "https://github.com/pjalbrz16/mem.git"
+        - name: prId
+          in: query
+          required: true
+          description: Pull request ID
+          schema:
+            type: string
+            example: "123"
+      responses:
+        '200':
+          description: Pull request metrics
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExecutedJobsResponse'
+                $ref: '#/components/schemas/PullRequestMetrics' # TODO
 
   /listPr:
     get:
       summary: Get list of Pull Requests
       description: Returns a list of PR/MR identification numbers based on the project URL and the detected Git provider.
       tags:
-        - WebRepo
+        - RemoteRepository
       parameters:
         - name: projectUrl
           in: query
@@ -93,116 +81,126 @@ paths:
               schema:
                 type: array
                 items:
-                  type: string
-                example: ["101", "102", "105"]
-        '400':
-          description: Invalid project URL or unsupported provider
-        '500':
-          description: Internal error while executing Git commands
+                  $ref: '#/components/schemas/PullRequestInfo'
 
-  /selectPr:
+  /addProjectPullRequest:
     post:
-      summary: Select a PR for analysis
-      description: |
-        Triggers the internal process to calculate metrics and generate a dependency graph 
-        for a specific Pull Request.
+      summary: Add a new project for metrics scanning
       tags:
-        - WebRepo
+        - RemoteRepository
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              properties:
-                projectUrl:
-                  type: string
-                  format: uri
-                  description: The full Git repository URL.
-                  example: "https://github.com/pjalbrz16/mem.git"
-                prId:
-                  type: string
-                  description: The unique ID of the Pull Request (as returned by /listPr).
-                  example: "1"
+              $ref: '#/components/schemas/ProjectMetadata'
       responses:
         '200':
-          description: PR successfully selected and analysis initiated.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "ANALYSIS_STARTED"
-                  message:
-                    type: string
-                    example: "Generating CodeQL metrics and .dot graph for PR #1"
-        '404':
-          description: Project or PR ID not found in the local workspace.
-        '500':
-          description: Failed to initialize Git diff or CodeQL database.
+          description: Project added successfully, scanning will start ...
 
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+
   schemas:
-    CreateJobRequest:
-      type: object
-      required:
-        - repoUrl
-        - language
-      properties:
-        repoUrl:
-          type: string
-          format: uri
-          example: https://github.com/example/project
-        language:
-          type: string
-          example: java
 
-    CreateJobResponse:
+    ScanMetricsResponse:
       type: object
-      required:
-        - jobId
-        - status
       properties:
-        jobId:
+        prId:
           type: string
-          example: 8f2a3b1e-6a1f-4a91-9c42-9b2b0f7f4c01
+          example: "123"
+        projectUrl:
+          type: string
+          example: "https://github.com/org/repo"
         status:
           type: string
-          example: QUEUED
-    FinalJobStatus:
-      type: string
-      enum: [ SUCCEEDED, FAILED ]
+          enum: [ SUCCESS, FAILURE, PENDING ]
 
-    ExecutedJobsResponse:
+        # Summarized data for quick frontend display
+        summary:
+          $ref: '#/components/schemas/ScanSummary'
+
+    PullRequestMetrics:
       type: object
-      required: [ items, total ]
       properties:
-        total:
+        sonarMetrics:
+          $ref: '#/components/schemas/SonarData'
+        codeqlSarif:
+          type: object
+          description: "The full SARIF JSON object (Static Analysis Results Interchange Format)"
+          additionalProperties: true
+        codeqlGraphDot:
+          type: string
+          description: "The Graphviz .dot string representing data flow"
+          example: "digraph G { node1 -> node2 }"
+
+    GithubMetrics:
+      type: object
+      properties:
+        prId:
+          type: string
+          description: The Pull Request ID
+        projectUrl:
+          type: string
+          description: The URL of the repository scanned
+        sarifFile:
+          type: string
+          format: binary
+          description: The CodeQL java.sarif output file
+        impactedFiles:
+          type: string
+          format: binary
+          description: The generated impacted_files.csv
+
+    ScanSummary:
+      type: object
+      properties:
+        vulnerabilityCount:
           type: integer
-          description: Total executed jobs matching the filter (not just returned page)
-          example: 123
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/JobSummary'
-
-    JobSummary:
-      type: object
-      required: [ jobId, repoUrl, status, createdAt, finishedAt ]
-      properties:
-        jobId:
+        codeSmells:
+          type: integer
+        bugs:
+          type: integer
+        coverage:
           type: string
-          example: 8f2a3b1e-6a1f-4a91-9c42-9b2b0f7f4c01
-        repoUrl:
+          example: "85.5%"
+
+    SonarData:
+      type: object
+      properties:
+        qualityGateStatus:
+          type: string
+          example: "OK"
+        analysisDate:
+          type: string
+          format: date-time
+        componentKey:
+          type: string
+
+    ProjectMetadata:
+      type: object
+      properties:
+        projectUrl:
           type: string
           format: uri
-          example: https://github.com/example/project
-        status:
-          $ref: '#/components/schemas/FinalJobStatus'
-        createdAt:
+          example: "https://github.com/org/repo"
+        prId:
           type: string
-          format: date-time
-        finishedAt:
+          example: "12345"
+
+    PullRequestInfo:
+      type: object
+      properties:
+        id:
           type: string
-          format: date-time
+          description: "The PR number"
+        title:
+          type: string
+        author:
+          type: string
+        url:
+          type: string
+          description: "The link to the PR on GitHub"

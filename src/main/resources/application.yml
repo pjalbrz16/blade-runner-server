@@ -4,10 +4,25 @@ springdoc:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/mydb
-    username: myuser
-    password: mypass
-  jpa:
-    hibernate:
-      ddl-auto: validate
+    url: jdbc:h2:file:./data/sampledb
+    driverClassName: org.h2.Driver
+    username: user
+    password: password
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+
+token:
+  github-pat: ${GITHUB_PAT:}
+  backend-token: ${BACKEND_TOKEN:}
+  frontend-token: ${FRONTEND_TOKEN:}
+
+app:
+  url: ${APP_URL:http://localhost:8080}
+  worker-url: 'https://github.com/pjalbrz16/blade-runner-worker'

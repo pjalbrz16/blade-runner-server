@@ -2,29 +2,36 @@ package org.unamur.controller;
 
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.RestController;
-import org.unamur.api.JobsApi;
-import org.unamur.model.CreateJobRequest;
-import org.unamur.model.CreateJobResponse;
-import org.unamur.model.ExecutedJobsResponse;
-import org.unamur.model.FinalJobStatus;
-import org.unamur.service.WebRepoService;
+import org.springframework.web.multipart.MultipartFile;
+import org.unamur.api.MetricsApi;
+import org.unamur.model.PullRequestMetrics;
+import org.unamur.service.MetricsService;
+
+import java.net.URI;
 
 @AllArgsConstructor
 @RestController
-public class MetricsController implements JobsApi {
+public class MetricsController implements MetricsApi {
 
-    private final WebRepoService webRepoService;
+    private final MetricsService metricsService;
+    private final SimpMessagingTemplate template;
 
     @Override
-    public ResponseEntity<CreateJobResponse> createJob(CreateJobRequest createJobRequest) {
-        webRepoService.processRepository(createJobRequest.getRepoUrl());
-
-        return JobsApi.super.createJob(createJobRequest);
+    public ResponseEntity<PullRequestMetrics> getMetrics(URI projectUrl, String prId) {
+        PullRequestMetrics metrics = metricsService.getMetrics(projectUrl, prId);
+        return ResponseEntity.ok(metrics);
     }
 
     @Override
-    public ResponseEntity<ExecutedJobsResponse> listExecutedJobs(FinalJobStatus status, Integer limit, Integer offset) {
-        return JobsApi.super.listExecutedJobs(status, limit, offset);
+    public ResponseEntity<Void> postMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles) {
+
+        // TODO : save to H2
+        metricsService.processMetrics(prId, projectUrl, sarifFile, impactedFiles);
+
+        template.convertAndSend("/topic/metrics/%s".formatted(prId), "READY");
+
+        return ResponseEntity.ok().build();
     }
 }
