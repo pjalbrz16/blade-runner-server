@@ -1,0 +1,4 @@
+change_type,file_path
+M,src/main/java/com/google/common/base/Preconditions.java
+A,src/main/java/com/google/common/base/NewFeature.java
+D,src/test/java/com/google/common/base/OldTest.java

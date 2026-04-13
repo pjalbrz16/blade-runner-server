@@ -1,6 +1,7 @@
 package org.unamur.controller;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,14 +9,18 @@ import org.springframework.web.multipart.MultipartFile;
 import org.unamur.api.MetricsApi;
 import org.unamur.model.PullRequestMetrics;
 import org.unamur.service.MetricsService;
+import org.unamur.service.SonarService;
 
 import java.net.URI;
+import java.util.Map;
 
+@Slf4j
 @AllArgsConstructor
 @RestController
 public class MetricsController implements MetricsApi {
 
     private final MetricsService metricsService;
+    private final SonarService sonarService;
     private final SimpMessagingTemplate template;
 
     @Override
@@ -27,11 +32,15 @@ public class MetricsController implements MetricsApi {
     @Override
     public ResponseEntity<Void> postMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles) {
 
-        // TODO : save to H2
-        metricsService.processMetrics(prId, projectUrl, sarifFile, impactedFiles);
+        metricsService.createOrUpdateMetrics(prId, projectUrl, sarifFile, impactedFiles);
+
+        Map<String, String> sonarMetrics = sonarService.getSonarMetrics();
+
+        metricsService.createOrUpdateMetrics(prId, projectUrl, sonarMetrics);
 
         template.convertAndSend("/topic/metrics/%s".formatted(prId), "READY");
 
         return ResponseEntity.ok().build();
     }
+
 }

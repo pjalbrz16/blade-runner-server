@@ -4,7 +4,7 @@ springdoc:
 
 spring:
   datasource:
-    url: jdbc:h2:file:./data/sampledb
+    url: jdbc:h2:file:./data/sampledb;AUTO_SERVER=TRUE
     driverClassName: org.h2.Driver
     username: user
     password: password
@@ -17,12 +17,15 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
+    show-sql: true
 
 token:
   github-pat: ${GITHUB_PAT:}
   backend-token: ${BACKEND_TOKEN:}
   frontend-token: ${FRONTEND_TOKEN:}
+  sonar-token: ${SONAR_TOKEN:}
 
 app:
   url: ${APP_URL:http://localhost:8080}
-  worker-url: 'https://github.com/pjalbrz16/blade-runner-worker'
+  worker-url: 'https://api.github.com/repos/pjalbrz16/blade-runner-worker'
+  sonar-component-key: 'pjalbrz16_github-worker-action'
