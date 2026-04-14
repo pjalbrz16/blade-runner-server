@@ -27,7 +27,8 @@ public class MetricsServiceImpl implements MetricsService {
         var results = prScanResultRepository.findByPrIdAndProjectUrl(prId, projectUrl.toString()).get();
 
         var filteredResults = new PullRequestMetrics();
-        // TODO return all metrics + DOT File to parse (not done yet)
+
+        // TODO return all metrics.
         return null;
     }
 
@@ -64,14 +65,14 @@ public class MetricsServiceImpl implements MetricsService {
     }
 
     @Override
-    public void createOrUpdateMetrics(String prId, String projectUrl, Map<String, String> sonarMetrics) {
+    public void createOrUpdateMetrics(String prId, String projectUrl, Map<String, String> sonarMetrics, String dotFile) {
         PrScanResult scanResult = prScanResultRepository.findByPrIdAndProjectUrl(prId, projectUrl).orElseThrow(() -> new IllegalArgumentException("PR scan result not found for project " + projectUrl + " and PR " + prId));
         scanResult.setCoverage(Float.valueOf(sonarMetrics.get("coverage")));
         scanResult.setBugs(Integer.valueOf(sonarMetrics.get("bugs")));
         scanResult.setCodeSmells(Integer.valueOf(sonarMetrics.get("code_smells")));
         scanResult.setVulnerabilities(Integer.valueOf(sonarMetrics.get("vulnerabilities")));
         scanResult.setSecurityHotspots(Integer.valueOf(sonarMetrics.get("security_hotspots")));
-
+        scanResult.setDotFile(dotFile);
         prScanResultRepository.save(scanResult);
     }
 }

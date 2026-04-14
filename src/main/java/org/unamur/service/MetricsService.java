@@ -11,5 +11,5 @@ public interface MetricsService {
 
     void createOrUpdateMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles);
 
-    void createOrUpdateMetrics(String prId, String projectUrl, Map<String, String> sonarMetrics);
+    void createOrUpdateMetrics(String prId, String projectUrl, Map<String, String> sonarMetrics, String dotFile);
 }

@@ -45,6 +45,10 @@ public class PrScanResult {
     @Column(columnDefinition = "TEXT")
     private String impactedFilesCsv;
 
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String dotFile;
+
     @CreationTimestamp
     @Column(name = "scan_timestamp", updatable = false)
     private LocalDateTime scanTimestamp;

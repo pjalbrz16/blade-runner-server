@@ -1,8 +1,7 @@
 package org.unamur.service;
 
-import java.nio.file.Path;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface CodeQLService {
-
-    Object processSarifFile(Path sarifFile);
+    String createDotFile(MultipartFile callCraphFile);
 }

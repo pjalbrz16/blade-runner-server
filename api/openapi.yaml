@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: CodeQL Graph API
-  description: API to submit CodeQL graph analysis jobs
+  title: Blade Runner
+  description: Blade Runner desc
   version: 1.0.0
 
 servers:
@@ -103,26 +103,7 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-
   schemas:
-
-    ScanMetricsResponse:
-      type: object
-      properties:
-        prId:
-          type: string
-          example: "123"
-        projectUrl:
-          type: string
-          example: "https://github.com/org/repo"
-        status:
-          type: string
-          enum: [ SUCCESS, FAILURE, PENDING ]
-
-        # Summarized data for quick frontend display
-        summary:
-          $ref: '#/components/schemas/ScanSummary'
-
     PullRequestMetrics:
       type: object
       properties:
@@ -136,7 +117,6 @@ components:
           type: string
           description: "The Graphviz .dot string representing data flow"
           example: "digraph G { node1 -> node2 }"
-
     GithubMetrics:
       type: object
       properties:
@@ -154,19 +134,10 @@ components:
           type: string
           format: binary
           description: The generated impacted_files.csv
-
-    ScanSummary:
-      type: object
-      properties:
-        vulnerabilityCount:
-          type: integer
-        codeSmells:
-          type: integer
-        bugs:
-          type: integer
-        coverage:
+        callGraphCsv:
           type: string
-          example: "85.5%"
+          format: binary
+          description: The generated call_graph.csv from codeQL query results
 
     SonarData:
       type: object

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.unamur.api.MetricsApi;
 import org.unamur.model.PullRequestMetrics;
+import org.unamur.service.CodeQLService;
 import org.unamur.service.MetricsService;
 import org.unamur.service.SonarService;
 
@@ -22,6 +23,7 @@ public class MetricsController implements MetricsApi {
     private final MetricsService metricsService;
     private final SonarService sonarService;
     private final SimpMessagingTemplate template;
+    private final CodeQLService codeQlService;
 
     @Override
     public ResponseEntity<PullRequestMetrics> getMetrics(URI projectUrl, String prId) {
@@ -30,16 +32,12 @@ public class MetricsController implements MetricsApi {
     }
 
     @Override
-    public ResponseEntity<Void> postMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles) {
-
+    public ResponseEntity<Void> postMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles, MultipartFile callGraphCsv, MultipartFile fullCallGraph) {
         metricsService.createOrUpdateMetrics(prId, projectUrl, sarifFile, impactedFiles);
-
         Map<String, String> sonarMetrics = sonarService.getSonarMetrics();
-
-        metricsService.createOrUpdateMetrics(prId, projectUrl, sonarMetrics);
-
+        String dotFile = codeQlService.createDotFile(callGraphCsv);
+        metricsService.createOrUpdateMetrics(prId, projectUrl, sonarMetrics, dotFile);
         template.convertAndSend("/topic/metrics/%s".formatted(prId), "READY");
-
         return ResponseEntity.ok().build();
     }
 
