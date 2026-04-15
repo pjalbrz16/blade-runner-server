@@ -1,10 +1,16 @@
 package org.unamur.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.unamur.model.PullRequestMetrics;
+import org.unamur.model.SonarData;
 import org.unamur.persistence.PrScanResult;
 import org.unamur.repository.PrScanResultRepository;
 import org.unamur.service.MetricsService;
@@ -12,7 +18,10 @@ import org.unamur.service.MetricsService;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @AllArgsConstructor
@@ -24,12 +33,33 @@ public class MetricsServiceImpl implements MetricsService {
     @Override
     public PullRequestMetrics getMetrics(URI projectUrl, String prId) {
 
-        var results = prScanResultRepository.findByPrIdAndProjectUrl(prId, projectUrl.toString()).get();
+        ObjectMapper mapper = new ObjectMapper();
+        var results = prScanResultRepository.findByPrIdAndProjectUrl(prId, projectUrl.toString()).orElseThrow(
+                () -> new NoSuchElementException("No scan results found for PR ID: " + prId + " and project URL: " + projectUrl)
+        );
 
-        var filteredResults = new PullRequestMetrics();
+        PullRequestMetrics pullRequestMetrics = new PullRequestMetrics();
+        SonarData sonarData = new SonarData();
+        sonarData.analysisDate(results.getScanTimestamp().atOffset(ZoneOffset.UTC));
+        sonarData.bugs(results.getBugs());
+        sonarData.codeSmells(results.getCodeSmells());
+        sonarData.securityHotspots(results.getSecurityHotspots());
+        sonarData.vulnerabilities(results.getVulnerabilities());
+        sonarData.qualityGateStatus(results.getQualityGateStatus());
 
-        // TODO return all metrics.
-        return null;
+        try{
+            Map<String, Object> sarifMap = mapper.readValue(
+                    results.getRawSarifJson(),
+                    new TypeReference<>() {
+                    }
+            );
+            pullRequestMetrics.setSonarMetrics(sonarData);
+            pullRequestMetrics.setSarif(sarifMap);
+            pullRequestMetrics.setDotFile(results.getDotFile());
+        }catch (JsonProcessingException exception){
+            log.error("Error parsing sarif json format using ObjectMapper", exception);
+        }
+        return pullRequestMetrics;
     }
 
     @Override

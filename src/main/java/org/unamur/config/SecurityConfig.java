@@ -24,7 +24,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/ws-metrics/**").permitAll()
-                        .requestMatchers("/v1/metrics/**").authenticated() // Protect your endpoint
+                        .requestMatchers("/metrics/**").authenticated() // Protect your endpoint
                         .anyRequest().permitAll()
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))

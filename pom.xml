@@ -135,7 +135,6 @@
                             <inputSpec>${project.basedir}/api/openapi.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <output>${project.build.directory}/generated</output>
-
                             <!-- Generate Spring Boot 3 compatible code -->
                             <configOptions>
                                 <useSpringBoot3>true</useSpringBoot3>
@@ -143,7 +142,12 @@
                                 <delegatePattern>true</delegatePattern>
                                 <useTags>true</useTags>
                             </configOptions>
-
+                            <typeMappings>
+                                <typeMapping>object=JsonNode</typeMapping>
+                            </typeMappings>
+                            <importMappings>
+                                <importMapping>JsonNode=com.fasterxml.jackson.databind.JsonNode</importMapping>
+                            </importMappings>
                             <apiPackage>org.unamur.api</apiPackage>
                             <modelPackage>org.unamur.model</modelPackage>
                         </configuration>

@@ -52,21 +52,6 @@ public class CodeQlServiceImpl implements CodeQLService {
                 }
             }
 
-
-//            for (InteractionDto edge : interactions) {
-//                // Node outside the PR
-//                dotBuilder.append(String.format("  \"%s\" [fillcolor=\"%s\"];\n",
-//                        edge.callerClass(), externalColor));
-//
-//                // Node inside the PR
-//                dotBuilder.append(String.format("  \"%s\" [fillcolor=\"%s\"];\n",
-//                        edge.targetClass(), prColor));
-//
-//                // The interaction (the edge)
-//                dotBuilder.append(String.format("  \"%s\" -> \"%s\" [label=\"calls\"];\n",
-//                        edge.callerClass(), edge.targetClass()));
-//            }
-
             dotBuilder.append("}\n");
 
             return dotBuilder.toString();

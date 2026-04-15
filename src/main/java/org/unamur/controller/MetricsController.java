@@ -32,7 +32,7 @@ public class MetricsController implements MetricsApi {
     }
 
     @Override
-    public ResponseEntity<Void> postMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles, MultipartFile callGraphCsv, MultipartFile fullCallGraph) {
+    public ResponseEntity<Void> postMetrics(String prId, String projectUrl, MultipartFile sarifFile, MultipartFile impactedFiles, MultipartFile callGraphCsv) {
         metricsService.createOrUpdateMetrics(prId, projectUrl, sarifFile, impactedFiles);
         Map<String, String> sonarMetrics = sonarService.getSonarMetrics();
         String dotFile = codeQlService.createDotFile(callGraphCsv);

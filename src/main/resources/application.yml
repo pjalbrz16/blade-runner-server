@@ -1,6 +1,6 @@
 springdoc:
   swagger-ui:
-    url: /openapi.yml
+    url: /openapi.yaml
 
 spring:
   datasource:
