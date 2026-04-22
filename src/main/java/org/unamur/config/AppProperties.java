@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 @Data
 public class AppProperties {
     private String url;
-    private String workerUrl;
+    private String githubWorkerRepo;
+    private String githubOwner;
+    private String githubUrl;
     private String sonarComponentKey;
 }

@@ -24,7 +24,7 @@ public class GithubApiClient {
     public GithubApiClient(TokenProperties tokenProperties, AppProperties appProperties) {
         this.appProperties = appProperties;
         this.client = RestClient.builder()
-                .baseUrl(appProperties.getWorkerUrl())
+                .baseUrl(appProperties.getGithubUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + tokenProperties.getGithubPat())
                 .build();
     }
@@ -38,12 +38,12 @@ public class GithubApiClient {
     }
 
     public void triggerScannerForPullRequest(Map<String, Object> variables) {
-        log.info("Triggering %s/actions/workflows/%s/dispatches".formatted(appProperties.getWorkerUrl(), WORKFLOW_ID));
+        log.info("Triggering /repos/%s/%s/actions/workflows/%s/dispatches".formatted(appProperties.getGithubOwner(), appProperties.getGithubWorkerRepo(), WORKFLOW_ID));
 
         log.info("Variables: {}", variables);
 
         client.post()
-                .uri("/actions/workflows/{workflowId}/dispatches", WORKFLOW_ID)
+                .uri("/repos/{githubOwner}/{githubWorkerRepo}/actions/workflows/{workflowId}/dispatches", appProperties.getGithubOwner(), appProperties.getGithubWorkerRepo(), WORKFLOW_ID)
                 .header(org.springframework.http.HttpHeaders.ACCEPT, "application/vnd.github+json")
                 .body(variables)
                 .retrieve()
