@@ -19,6 +19,15 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope: read:user, repo
+
 token:
   github-pat: ${GITHUB_PAT:}
   backend-token: ${BACKEND_TOKEN:}
