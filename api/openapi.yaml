@@ -14,7 +14,7 @@ paths:
       summary: Get user's GitHub repositories
       operationId: getMyRepos
       tags:
-        - GitHub
+        - Github
       responses:
         '200':
           description: A list of the user's GitHub repositories
